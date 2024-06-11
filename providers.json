@@ -1,29 +1,35 @@
 {
     "subscribes":[
         {
-            "url": "URL",
-            "tag": "tag_1",
-            "enabled": true,
-            "emoji": 1,
-            "subgroup": "",
+            "url": "https://jjsubmarines.com/members/getsub.php?service=879678&id=b28404ad-10b0-4d30-8cb4-1c220b2e8fca",
+            "tag": "tag_0",
+            "enabled": false,
+            "emoji": 0,
             "prefix": "",
             "User-Agent":"v2rayng"
         },
         {
-            "url": "URL",
+            "url": "https://jjsubmarines.com/members/getsub.php?service=991481&id=026d6648-eade-4d82-8580-cb7083763501",
+            "tag": "tag_1",
+            "enabled": true,
+            "emoji": 0,
+            "prefix": "",
+            "User-Agent":"v2rayng"
+        },
+        {
+            "url": "https://jjsubmarines.com/members/getsub.php?service=1004902&id=03a2e4db-b7be-4529-8d9b-6b89584d1145",
             "tag": "tag_2",
             "enabled": false,
             "emoji": 0,
-            "subgroup": "命名/named",
-            "prefix": "❤️",
-            "User-Agent":"clashmeta"
+            "prefix": "",
+            "User-Agent":"v2rayng"
         }
     ],
     "auto_set_outbounds_dns":{
         "proxy": "",
-        "direct": ""
+        "direct": "211.138.24.66"
     },
-    "save_config_path": "./config.json",
+    "save_config_path": "/Users/yangzhihao/Library/Group Containers/group.io.nekohasekai.sfa/configs/config_1.json",
     "auto_backup": false,
     "exclude_protocol":"ssr",
     "config_template": "",

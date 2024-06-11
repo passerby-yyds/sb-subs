@@ -43,15 +43,10 @@ def process_subscribes(subscribes):
     for subscribe in subscribes:
         if 'enabled' in subscribe and not subscribe['enabled']:
             continue
-        if 'sing-box-subscribe-doraemon.vercel.app' in subscribe['url']:
-            continue
         _nodes = get_nodes(subscribe['url'])
         if _nodes and len(_nodes) > 0:
             add_prefix(_nodes, subscribe)
             add_emoji(_nodes, subscribe)
-            nodefilter(_nodes, subscribe)
-            if subscribe.get('subgroup'):
-                subscribe['tag'] = subscribe['tag'] + '-' + subscribe['subgroup'] + '-' + 'subgroup'
             if not nodes.get(subscribe['tag']):
                 nodes[subscribe['tag']] = []
             nodes[subscribe['tag']] += _nodes
@@ -109,25 +104,12 @@ def add_prefix(nodes, subscribe):
     if subscribe.get('prefix'):
         for node in nodes:
             node['tag'] = subscribe['prefix'] + node['tag']
-            if node.get('detour'):
-                node['detour'] = subscribe['prefix'] + node['detour']
 
 
 def add_emoji(nodes, subscribe):
     if subscribe.get('emoji'):
         for node in nodes:
             node['tag'] = tool.rename(node['tag'])
-            if node.get('detour'):
-                node['detour'] = tool.rename(node['detour'])
-
-
-def nodefilter(nodes, subscribe):
-    if subscribe.get('ex-node-name'):
-        ex_nodename = re.split(r'[,\|]', subscribe['ex-node-name'])
-        for exns in ex_nodename:
-            for node in nodes[:]:  # 遍历 nodes 的副本，以便安全地删除元素
-                if exns in node['tag']:
-                    nodes.remove(node)
 
 
 def get_nodes(url):
@@ -194,10 +176,7 @@ def parse_content(content):
         factory = get_parser(t)
         if not factory:
             continue
-        try:
-            node = factory(t)
-        except Exception as e:  #节点解析失败，跳过
-            pass
+        node = factory(t)
         if node:
             nodelist.append(node)
     return nodelist
@@ -209,9 +188,6 @@ def get_parser(node):
         eps = providers['exclude_protocol'].split(',')
         if len(eps) > 0:
             eps = [protocol.strip() for protocol in eps]
-            if 'hy2' in eps:
-                index = eps.index('hy2')
-                eps[index] = 'hysteria2'
             if proto in eps:
                 return None
     if not proto or proto not in parsers_mod.keys():
@@ -219,12 +195,12 @@ def get_parser(node):
     return parsers_mod[proto].parse
 
 
-def get_content_from_url(url, n=10):
+def get_content_from_url(url, n=6):
     UA = ''
     print('处理: \033[31m' + url + '\033[0m')
     # print('Đang tải link đăng ký: \033[31m' + url + '\033[0m')
     prefixes = ["vmess://", "vless://", "ss://", "ssr://", "trojan://", "tuic://", "hysteria://", "hysteria2://",
-                "hy2://", "wg://", "wireguard://", "http2://", "socks://", "socks5://"]
+                "hy2://", "wg://", "http2://", "socks://", "socks5://"]
     if any(url.startswith(prefix) for prefix in prefixes):
         response_text = tool.noblankLine(url)
         return response_text
@@ -246,9 +222,8 @@ def get_content_from_url(url, n=10):
         # print('Lỗi khi tải link đăng ký, bỏ qua link đăng ký này')
         print('----------------------------')
         pass
-    response_content = response.content
-    response_text = response_content.decode('utf-8-sig')  # utf-8-sig 可以忽略 BOM
-    #response_encoding = response.encoding
+    response_text = response.text
+    response_encoding = response.encoding
     if response_text.isspace():
         print('没有从订阅链接获取到任何内容')
         # print('Không nhận được proxy nào từ link đăng ký')
@@ -261,10 +236,9 @@ def get_content_from_url(url, n=10):
         return response_text
     elif 'proxies' in response_text:
         yaml_content = response.content.decode('utf-8')
-        response_text_no_tabs = yaml_content.replace('\t', ' ') #fuckU
         yaml = ruamel.yaml.YAML()
         try:
-            response_text = dict(yaml.load(response_text_no_tabs))
+            response_text = dict(yaml.load(yaml_content))
             return response_text
         except:
             pass
@@ -273,9 +247,7 @@ def get_content_from_url(url, n=10):
             response_text = json.loads(response.text)
             return response_text
         except:
-            response_text = re.sub(r'//.*', '', response_text)
-            response_text = json.loads(response_text)
-            return response_text
+            pass
     else:
         try:
             response_text = tool.b64Decode(response_text)
@@ -290,7 +262,7 @@ def get_content_from_url(url, n=10):
 def get_content_form_file(url):
     print('处理: \033[31m' + url + '\033[0m')
     # print('Đang tải link đăng ký: \033[31m' + url + '\033[0m')
-    # encoding = tool.get_encoding(url)
+    encoding = tool.get_encoding(url)
     file_extension = os.path.splitext(url)[1]  # 获取文件的后缀名
     if file_extension.lower() == '.yaml':
         with open(url, 'rb') as file:
@@ -420,28 +392,6 @@ def pro_node_template(data_nodes, config_outbound, group):
 
 def combin_to_config(config, data):
     config_outbounds = config["outbounds"] if config.get("outbounds") else None
-    i = 0
-    for group in data:
-        if 'subgroup' in group:
-            i += 1
-            for out in config_outbounds:
-                if out.get("outbounds"):
-                    if out['tag'] == 'Proxy':
-                        out["outbounds"] = [out["outbounds"]] if isinstance(out["outbounds"], str) else out["outbounds"]
-                        if '{all}' in out["outbounds"]:
-                            index_of_all = out["outbounds"].index('{all}')
-                            out["outbounds"][index_of_all] = (group.rsplit("-", 1)[0]).rsplit("-", 1)[-1]
-                            i += 1
-                        else:
-                            out["outbounds"].insert(i, (group.rsplit("-", 1)[0]).rsplit("-", 1)[-1])
-            new_outbound = {'tag': (group.rsplit("-", 1)[0]).rsplit("-", 1)[-1], 'type': 'selector', 'outbounds': ['{' + group + '}']}
-            config_outbounds.insert(-4, new_outbound)
-        else:
-            for out in config_outbounds:
-                if out.get("outbounds"):
-                    if out['tag'] == 'Proxy':
-                        out["outbounds"] = [out["outbounds"]] if isinstance(out["outbounds"], str) else out["outbounds"]
-                        out["outbounds"].append('{' + group + '}')
     temp_outbounds = []
     if config_outbounds:
         # 提前处理all模板
@@ -480,11 +430,9 @@ def combin_to_config(config, data):
                     else:
                         t_o.append(oo)
                 if len(t_o) == 0:
-                    t_o.append('Proxy')
                     print('发现 {} 出站下的节点数量为 0 ，会导致sing-box无法运行，请检查config模板是否正确。'.format(
                         po['tag']))
                     # print('Sing-Box không chạy được vì không tìm thấy bất kỳ proxy nào trong outbound của {}. Vui lòng kiểm tra xem mẫu cấu hình có đúng không!!'.format(po['tag']))
-                    """
                     config_path = json.loads(temp_json_data).get("save_config_path", "config.json")
                     CONFIG_FILE_NAME = config_path
                     config_file_path = os.path.join('/tmp', CONFIG_FILE_NAME)
@@ -493,7 +441,6 @@ def combin_to_config(config, data):
                         print(f"已删除文件：{config_file_path}")
                         # print(f"Các tập tin đã bị xóa: {config_file_path}")
                     sys.exit()
-                    """
                 po['outbounds'] = t_o
                 if po.get('filter'):
                     del po['filter']
